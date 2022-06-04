@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.1
+// @version      0.2
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
@@ -12,6 +12,7 @@
 ////require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js
 let searchCount = 0;
 let currentToken = '';
+let preHttp = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/'; // 可根据实际地址修改
 (function () {
     'use strict';
     // 添加悬浮框
@@ -34,22 +35,21 @@ function addFloat() {
 async function getSub(token) {
     let url = '';
     if (token == 'shareDoc') {
-        url = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/share/folder/newlist/?hidden=0&asc=1&rank=5'
+        url = preHttp+'share/folder/newlist/?hidden=0&asc=1&rank=5'
     } else if (token == 'myDoc') {
-        url = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/folder/children/?type=0&asc=1&rank=5'
+        url = preHttp+'folder/children/?type=0&asc=1&rank=5'
     } else {
-        url = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/folder/children/?asc=1&rank=5&token=' + token + '&show_no_perm=1' // mydoc
+        url = preHttp+'folder/children/?asc=1&rank=5&token=' + token + '&show_no_perm=1' // mydoc
     }
-    //url = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/folder/children/?asc=1&rank=5&token=fldhqpdAFM1JqAtdowGUsZ1XLzd&show_no_perm=1' // share
-
     return await getRequest(url)
 }
 unsafeWindow.getPath = async function () {
-    let arr = location.href.split('/');
+    let arr = location.pathname.split('/');
     let pathToken = arr.pop();
     let pathType = arr.pop();
     console.log(pathToken, pathType)
     if (pathToken.length != 27) {
+        myFloatHint.innerHTML = '路径中token长度不是27'; 
         console.log('pathToken len[' + pathToken.length + '] not 27')
         return '';
     }
@@ -65,8 +65,7 @@ unsafeWindow.getPath = async function () {
         myFloatHint.innerHTML = '<span style="color:red">当前格式[' + pathType + ']不在列表中，请联系开发</span>'
         return;
     }
-    // https://internal-api-space.fs.huaqin.com/space/api/explorer/obj/paths/?obj_token=shthqFNSAwoahCkFxKrAkDQOSqb&obj_type=2
-    let url = `https://internal-api-space.fs.huaqin.com/space/api/explorer/obj/paths/?obj_token=${pathToken}&obj_type=${typeCode}`
+    let url = preHttp+`obj/paths/?obj_token=${pathToken}&obj_type=${typeCode}`
     return await getRequest(url)
 }
 
@@ -94,29 +93,6 @@ function getRequest(url) {
             }, error: function (xhr, status, error) { console.error('error'); reject(error) }
         });
     });
-
-
-    /*
-    return axios.get("https://internal-api-space.fs.huaqin.com/space/api/explorer/obj/paths/?obj_token="+currToken+"&obj_type=2", {
-     headers: {
-        "X-CSRFToken":token,
-     },
-     withCredentials: true //允许跨域带 Cookie
-   })
-      $.get( "https://internal-api-space.fs.huaqin.com/space/api/explorer/folder/children/?type=0&asc=1&rank=5",function(data){
-         console.log(data)
-     })
-       GM_xmlhttpRequest({ // @grant        GM_xmlhttpRequest
-         url:"https://internal-api-space.fs.huaqin.com/space/api/explorer/folder/children/?type=0&asc=1&rank=5",
-         method :"GET",
-         //data:"fid=1037793830&act=1&re_src=11&jsonp=jsonp&csrf=e37f1881fd98f16756d16ab71109d37a",
-         headers: {
-             "Content-type": "application/json; charset=utf-8"
-         },
-         onload:function(xhr){
-             console.log(xhr.responseText);
-         }
-     });*/
 }
 unsafeWindow.showList = function () {
     let flag = myControl.style.display == 'none';
@@ -147,7 +123,7 @@ function addList() {
     }
     `
     var strControlHTML = `
-    <div style="padding:2px;width:360px;position:fixed;top:40px;left:2px;z-index:99999" id="myselfFloat">
+    <div style="padding:2px;width:25px;position:fixed;top:40px;left:2px;z-index:99999" id="myselfFloat">
     <div style="cursor:pointer;color:white"
       onclick="showList()">📑<span id="myFloatHint"></span></div>
     <div style="display:none;height:600px;background-color:rgb(245, 246, 247);color:black;overflow-x: auto; overflow-y: austo;" id="myControl">
@@ -275,6 +251,11 @@ unsafeWindow.openFolder = async function () {
         return
     }
     let arrOri = data.data.paths[0];
+    if(arrOri==null)
+    {
+        myFloatHint.innerHTML = '该文件未属于任何文件夹！';
+        return
+    }
     let arr = [];
     if (arrOri[0] == 'share-folders') {
         arr.push('shareDoc')

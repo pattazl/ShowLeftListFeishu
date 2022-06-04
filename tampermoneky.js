@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.2
+// @version      0.3
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
 // @icon         https://www.feishu.cn/favicon.ico
+// @require      https://unpkg.com/dayjs@1.11.2/dayjs.min.js
 // @grant        unsafeWindow
 // @license      MIT
 // ==/UserScript==
@@ -13,6 +14,21 @@
 let searchCount = 0;
 let currentToken = '';
 let preHttp = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/'; // 可根据实际地址修改
+// obj_type 无法获取 ，只能分析判断为4种
+let typeList = {
+    file: 12,
+    mindnotes: 11,
+    sheets: 3,
+    docs: 2,
+    folder:0
+}
+
+// 根据 typeList 反向获得
+let strTypeList ={} 
+for(let t in typeList)
+{
+    strTypeList[ typeList[t]] = t;
+}
 (function () {
     'use strict';
     // 添加悬浮框
@@ -52,13 +68,6 @@ unsafeWindow.getPath = async function () {
         myFloatHint.innerHTML = '路径中token长度不是27'; 
         console.log('pathToken len[' + pathToken.length + '] not 27')
         return '';
-    }
-    // obj_type 无法获取 ，只能分析判断为4种
-    let typeList = {
-        file: 12,
-        mindnotes: 11,
-        sheets: 3,
-        docs: 2,
     }
     let typeCode = typeList[pathType]
     if (typeCode == null) {
@@ -102,7 +111,7 @@ unsafeWindow.showList = function () {
         myselfFloat.style.backgroundColor = 'grey';
 
         // 显示当前页面的路径
-        setTimeout(function () { openFolder() }, 1000);
+        setTimeout(function () { openFolder() }, 100);
 
     } else {
         myControl.style.display = 'none';
@@ -222,6 +231,7 @@ async function ajaxGetPath(obj, alwaysOpen) {
 
     if (childSpan != null && obj.id.length > 10) {
         childSpan.innerHTML = folderSVGBlue
+        childSpan.title='折叠'
     }
     let data;
     data = await getSub(obj.id);
@@ -233,6 +243,16 @@ async function ajaxGetPath(obj, alwaysOpen) {
         oNode.id = arrV;
         oNode.url = n.url;
         oNode.type = n.type;
+
+        let strType = strTypeList[n.type]
+        let strCtime = n.create_time
+        let strMtime = n.edit_time
+        if(dayjs)
+        {
+            strCtime = dayjs(strCtime*1000).format('YY-MM-DD HH:mm:ss')
+            strMtime = dayjs(strMtime*1000).format('YY-MM-DD HH:mm:ss')
+        }
+        oNode.title=`类型:${strType},创建时间:${strCtime},修改时间:${strMtime}`;
         if (n.type == 0) {
             oNode.innerHTML = `<span title='展开'>${folderSVG}</span><span newwin title='新窗口中打开'>${folderOpenNew}</span>${n.name} `;
         } else {
@@ -245,6 +265,7 @@ async function ajaxGetPath(obj, alwaysOpen) {
         obj.appendChild(oNode)
     }
 }
+
 unsafeWindow.openFolder = async function () {
     let data = await getPath()
     if (data.data == null || data.data.paths == null) {

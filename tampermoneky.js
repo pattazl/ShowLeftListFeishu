@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.3
+// @version      0.4
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
@@ -135,7 +135,7 @@ function addList() {
     <div style="padding:2px;width:25px;position:fixed;top:40px;left:2px;z-index:99999" id="myselfFloat">
     <div style="cursor:pointer;color:white"
       onclick="showList()">📑<span id="myFloatHint"></span></div>
-    <div style="display:none;height:600px;background-color:rgb(245, 246, 247);color:black;overflow-x: auto; overflow-y: austo;" id="myControl">
+    <div style="display:none;height:600px;background-color:rgb(245, 246, 247);color:black;overflow-x: auto; overflow-y: auto;" id="myControl">
       <div class="level" id="myDoc"> <span class="spark-icon" style="width: 20px; height: 20px;"><svg width="20"
             height="20" viewBox="0 0 20 20" fill="none">
             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -271,7 +271,7 @@ unsafeWindow.openFolder = async function () {
     if (data.data == null || data.data.paths == null) {
         return
     }
-    let arrOri = data.data.paths[0];
+    let arrOri = data.data.paths[0]; // 如果有多个路径，取第一个
     if(arrOri==null)
     {
         myFloatHint.innerHTML = '该文件未属于任何文件夹！';
@@ -290,5 +290,12 @@ unsafeWindow.openFolder = async function () {
     for (let v of arr) {
         await ajaxGetPath(document.getElementById(v), true)
     }
+    // 滚动显出出来,距离上方空90px
+    myControl.scrollTo(
+        {
+            top: document.getElementById(currentToken).offsetTop -90, 
+            behavior: "smooth" 
+        }
+    )
 }
 

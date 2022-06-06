@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.4
+// @version      0.5
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
@@ -293,7 +293,7 @@ unsafeWindow.openFolder = async function () {
     // 滚动显出出来,距离上方空90px
     myControl.scrollTo(
         {
-            top: document.getElementById(currentToken).offsetTop -90, 
+            top: document.getElementById(currentToken).offsetTop -200, 
             behavior: "smooth" 
         }
     )

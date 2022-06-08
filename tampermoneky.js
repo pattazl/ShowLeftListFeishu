@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.6
+// @version      0.7
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
 // @icon         https://www.feishu.cn/favicon.ico
 // @require      https://unpkg.com/dayjs@1.11.2/dayjs.min.js
-// @grant        unsafeWindow
+// @grant        GM_addStyle
 // @license      MIT
 // ==/UserScript==
 ////require      https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js
@@ -59,7 +59,7 @@ async function getSub(token) {
     }
     return await getRequest(url)
 }
-unsafeWindow.getPath = async function () {
+async function getPath() {
     let arr = location.pathname.split('/');
     let pathToken = arr.pop();
     let pathType = arr.pop();
@@ -103,7 +103,7 @@ function getRequest(url) {
         });
     });
 }
-unsafeWindow.showList = function () {
+function showList() {
     let flag = myControl.style.display == 'none';
     if (flag) {
         myControl.style.display = 'block';
@@ -132,8 +132,7 @@ function addList() {
     `
     var strControlHTML = `
     <div style="padding:2px;width:25px;position:fixed;top:40px;left:2px;z-index:99999" id="myselfFloat">
-    <div style="cursor:pointer;color:white"
-      onclick="showList()">📑<span id="myFloatHint"></span><select style="display:none" id="myFloatSelect"></select></div>
+    <div style="cursor:pointer;color:white" id="myFloatBar">📑<span id="myFloatHint"></span><select style="display:none" id="myFloatSelect"></select></div>
     <div style="display:none;height:600px;background-color:rgb(245, 246, 247);color:black;overflow-x: auto; overflow-y: auto;" id="myControl">
       <div class="level" id="myDoc"> <span class="spark-icon" style="width: 20px; height: 20px;"><svg width="20"
             height="20" viewBox="0 0 20 20" fill="none">
@@ -156,11 +155,8 @@ function addList() {
   `;
     var oNode = document.createElement('div');
     oNode.innerHTML = strControlHTML;
-    var oStyle = document.createElement('style');
-    oStyle.innerHTML = cssStr;
     document.body.append(oNode);
-    document.body.append(oStyle);
-
+    GM_addStyle(cssStr)
     // 绑定统一事件
     myDoc.type = 0;
     myDoc.onclick = (e) => {
@@ -173,10 +169,14 @@ function addList() {
     // 显示下拉菜单
     myFloatSelect.onclick= (e) => {
         try{
-            let arr =  JSON.parse(myFloatSelect.value)
+            let arr = JSON.parse(myFloatSelect.value)
             openFolderCore(arr)
         }catch(e){}
         e.cancelBubble= true // 禁止传递消息
+    }
+    // 绑定按钮
+    myFloatBar.onclick = () => {
+        showList();
     }
 }
 
@@ -273,7 +273,7 @@ async function ajaxGetPath(obj, alwaysOpen) {
     }
 }
 
-unsafeWindow.openFolder = async function () {
+async function openFolder() {
     let data = await getPath()
     if (data.data == null || data.data.paths == null) {
         return
@@ -306,7 +306,7 @@ unsafeWindow.openFolder = async function () {
     // 一个文件夹时自动选择,取第一个
     await openFolderCore(arrPath[0]);
 }
-unsafeWindow.openFolderCore = async function(arrOri)
+async function openFolderCore(arrOri)
 {
     let arr = [];
     if (arrOri[0] == 'share-folders') {

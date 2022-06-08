@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.5
+// @version      0.6
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
@@ -109,14 +109,13 @@ unsafeWindow.showList = function () {
         myControl.style.display = 'block';
         myselfFloat.style.width = '360px'
         myselfFloat.style.backgroundColor = 'grey';
-
         // 显示当前页面的路径
-        setTimeout(function () { openFolder() }, 100);
-
+        openFolder()
     } else {
         myControl.style.display = 'none';
         myselfFloat.style.width = '25px'
         myselfFloat.style.backgroundColor = ''
+        myFloatSelect.style.display='none';
         // opacity: 1.0;
     }
 }
@@ -134,7 +133,7 @@ function addList() {
     var strControlHTML = `
     <div style="padding:2px;width:25px;position:fixed;top:40px;left:2px;z-index:99999" id="myselfFloat">
     <div style="cursor:pointer;color:white"
-      onclick="showList()">📑<span id="myFloatHint"></span></div>
+      onclick="showList()">📑<span id="myFloatHint"></span><select style="display:none" id="myFloatSelect"></select></div>
     <div style="display:none;height:600px;background-color:rgb(245, 246, 247);color:black;overflow-x: auto; overflow-y: auto;" id="myControl">
       <div class="level" id="myDoc"> <span class="spark-icon" style="width: 20px; height: 20px;"><svg width="20"
             height="20" viewBox="0 0 20 20" fill="none">
@@ -170,6 +169,14 @@ function addList() {
     shareDoc.type = 0;
     shareDoc.onclick = (e) => {
         ajaxGetPath(e.srcElement)
+    }
+    // 显示下拉菜单
+    myFloatSelect.onclick= (e) => {
+        try{
+            let arr =  JSON.parse(myFloatSelect.value)
+            openFolderCore(arr)
+        }catch(e){}
+        e.cancelBubble= true // 禁止传递消息
     }
 }
 
@@ -271,12 +278,36 @@ unsafeWindow.openFolder = async function () {
     if (data.data == null || data.data.paths == null) {
         return
     }
-    let arrOri = data.data.paths[0]; // 如果有多个路径，取第一个
-    if(arrOri==null)
+    let nodes = data.data.entities?.nodes;
+    let arrPath = data.data.paths;
+    if(arrPath.length ==0)
     {
         myFloatHint.innerHTML = '该文件未属于任何文件夹！';
         return
+    }else if(arrPath.length>1)
+    {
+        myFloatSelect.style.display='inline';
+        myFloatSelect.options.length=0; // 清空
+        myFloatSelect.options.add(new Option('属于多个文件夹,请选择',''))
+        for(let arr of arrPath)
+        {
+            console.log(arr)
+            if(nodes==null || arr.length<3)
+            {
+                myFloatHint.innerHTML = 'nodes信息获取失败';
+                break;
+            }
+            let v = arr[arr.length-2];
+            let p = new Option(nodes[v].name,JSON.stringify(arr));
+            myFloatSelect.options.add(p)
+        }
+        return;
     }
+    // 一个文件夹时自动选择,取第一个
+    await openFolderCore(arrPath[0]);
+}
+unsafeWindow.openFolderCore = async function(arrOri)
+{
     let arr = [];
     if (arrOri[0] == 'share-folders') {
         arr.push('shareDoc')
@@ -293,9 +324,8 @@ unsafeWindow.openFolder = async function () {
     // 滚动显出出来,距离上方空90px
     myControl.scrollTo(
         {
-            top: document.getElementById(currentToken).offsetTop -200, 
-            behavior: "smooth" 
+            top: document.getElementById(currentToken).offsetTop -200,
+            behavior: "smooth"
         }
     )
 }
-

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ShowLeftListFeishu
 // @namespace    https://www.feishu.cn/
-// @version      0.7
+// @version      0.8
 // @description  展示飞书文件列表
 // @author       AustinYoung
 // @match        https://prd.fs.huaqin.com/*
@@ -14,6 +14,7 @@
 let searchCount = 0;
 let currentToken = '';
 let preHttp = 'https://internal-api-space.fs.huaqin.com/space/api/explorer/'; // 可根据实际地址修改
+const shareFlag = 'share-folders'  // 识别为共享文件
 // obj_type 无法获取 ，只能分析判断为4种
 let typeList = {
     file: 12,
@@ -298,7 +299,12 @@ async function openFolder() {
                 break;
             }
             let v = arr[arr.length-2];
-            let p = new Option(nodes[v].name,JSON.stringify(arr));
+            let preIcon = '🧑';
+            if(arr[0]== shareFlag )
+            {
+                preIcon = '🧑🏻‍🤝‍🧑🏼'
+            }
+            let p = new Option(preIcon+nodes[v].name,JSON.stringify(arr));
             myFloatSelect.options.add(p)
         }
         return;
@@ -309,7 +315,7 @@ async function openFolder() {
 async function openFolderCore(arrOri)
 {
     let arr = [];
-    if (arrOri[0] == 'share-folders') {
+    if (arrOri[0] == shareFlag ) {
         arr.push('shareDoc')
     } else {
         arr.push('myDoc')
